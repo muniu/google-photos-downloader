@@ -1,119 +1,126 @@
 # Google Photos Album Downloader
 
-A Python script to batch download all photos and videos from your Google Photos albums. This tool allows you to:
-- List all your Google Photos albums
-- Select an album to download
-- Download all media items from the selected album with automatic retries
-- Track downloaded files to resume interrupted downloads
-- Process large albums in batches to handle rate limits
-
-## Prerequisites
-
-- Python 3.7 or higher
-- A Google Cloud Project with the Photos Library API enabled
-- OAuth 2.0 credentials from Google Cloud Console
-
-## Setup
-
-1. Clone this repository:
-```bash
-git clone https://github.com/muniu/google-photos-downloader.git
-cd google-photos-downloader
-```
-
-2. Install required dependencies:
-```bash
-pip install google-auth-oauthlib google-auth-httplib2 google-api-python-client requests
-```
-
-3. Set up Google Cloud Console:
-   1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-   2. Create a new project or select an existing one
-   3. Enable the Photos Library API:
-      - Navigate to "APIs & Services" > "Library"
-      - Search for "Photos Library API"
-      - Click "Enable"
-   4. Configure OAuth consent screen:
-      - Go to "APIs & Services" > "OAuth consent screen"
-      - Select "External" user type
-      - Fill in the required fields (app name, user support email, developer contact)
-      - Add the email addresses that will use the application under "Test users"
-   5. Create OAuth credentials:
-      - Go to "APIs & Services" > "Credentials"
-      - Click "Create Credentials" > "OAuth client ID"
-      - Select "Desktop application" as the application type
-      - Name your client
-      - Click "Create"
-   6. Download the credentials:
-      - Find your newly created OAuth 2.0 Client ID
-      - Click the download icon (⬇️)
-      - Save the file as `credentials.json` in the same directory as the script
-
-## Usage
-
-1. Place the `credentials.json` file in the same directory as the script.
-
-2. Run the script:
-```bash
-python google-photos-downloader-final.py
-```
-
-3. Follow the interactive prompts:
-   - Enter your Google email address
-   - Authenticate through your browser when prompted
-   - Select an album from the displayed list
-   - Specify an output directory (defaults to ./downloads)
+A robust Python utility for downloading all your Google Photos albums and media with batch processing capability to efficiently handle large collections.
 
 ## Features
 
-- **Batch Processing**: Downloads files in batches of 500 to handle rate limits
-- **Resume Support**: Tracks downloaded files to resume interrupted downloads
-- **Automatic Retries**: Retries failed downloads up to 3 times
-- **Progress Tracking**: Shows real-time download progress
-- **Error Handling**: Comprehensive error handling and logging
+- Download options for flexibility:
+  - Download all albums at once
+  - Download multiple selected albums at once
+  - Download a single specific album
+- Batch processing to handle large collections efficiently
+- Resume capability (skips previously downloaded files)
+- Maintains a download log to track progress
+- Retry mechanism for failed downloads
+- Support for multiple Google accounts (token-based authentication)
 
-## File Structure
+## Prerequisites
 
-- `google-photos-downloader-final.py`: Main script
-- `credentials.json`: OAuth 2.0 credentials from Google Cloud Console
-- `token_{email}.pickle`: Stored authentication tokens (created automatically)
-- `downloaded_files.json`: Tracks successfully downloaded files
-- `downloads/`: Default directory for downloaded media (created automatically)
+- Python 3.6+
+- Google Cloud Platform account with Google Photos Library API enabled
+- OAuth 2.0 credentials
+
+## Installation
+
+1. Clone this repository or download the script.
+
+2. Install required dependencies:
+
+```bash
+pip install google-auth-oauthlib google-api-python-client requests
+```
+
+3. Set up Google Cloud Platform:
+
+   a. Go to [Google Cloud Console](https://console.cloud.google.com/)
+   
+   b. Create a new project
+   
+   c. Enable the "Google Photos Library API"
+   
+   d. Create OAuth 2.0 credentials:
+      - Go to "APIs & Services" > "Credentials"
+      - Click "Create Credentials" > "OAuth client ID"
+      - Set Application type to "Desktop application"
+      - Download the JSON file and save it as `credentials.json` in the same directory as the script
+
+## Usage
+
+Run the script:
+
+```bash
+python google_photos_downloader.py
+```
+
+### Authentication
+
+1. Enter your Google email address when prompted
+2. A browser window will open for you to sign in to your Google account and grant permissions
+3. After successful authentication, a token will be saved locally for future use
+
+### Downloading Albums
+
+The script offers three options:
+
+1. Download all albums:
+   - Enter 'a' when prompted
+   - All albums will be downloaded to separate folders inside the output directory
+
+2. Download multiple albums:
+   - Enter 'm' when prompted
+   - Enter the numbers of the albums you want to download, separated by commas (e.g., "1,3,5")
+   - The selected albums will be downloaded to separate folders inside the output directory
+
+3. Download a specific album:
+   - Enter 's' when prompted
+   - Select an album from the displayed list by entering its number
+   - The selected album will be downloaded to a folder inside the output directory
+
+### Output Directory
+
+By default, files are downloaded to a `./downloads` directory. You can specify a custom path when prompted.
+
+## How It Works
+
+1. **Authentication**: Uses OAuth 2.0 to securely access your Google Photos account
+2. **Album Discovery**: Fetches the list of all available albums
+3. **Album Selection**: Provides options to download all albums, multiple specific albums, or a single album
+4. **Media Processing**: Downloads media items in batches (default 500 items per batch)
+5. **Download Tracking**: Maintains a log of downloaded files to support resuming interrupted downloads
+6. **Error Handling**: Implements retries for failed downloads and handles API errors gracefully
+
+## Batch Processing
+
+The script processes media in batches of 500 items by default. This helps:
+- Reduce memory usage for large albums
+- Provide progress updates
+- Allow interrupting and resuming downloads later
+- Prevent timeouts for very large collections
 
 ## Troubleshooting
 
-If you encounter errors:
+If you encounter issues:
 
-1. **Authentication Errors**:
-   - Ensure `credentials.json` is in the correct location
-   - Verify you've enabled the Photos Library API
-   - Check that your email is added as a test user in the OAuth consent screen
+- Ensure `credentials.json` is correctly downloaded from Google Cloud Console
+- Verify the Google Photos Library API is enabled in your GCP project
+- Check that your OAuth 2.0 credentials have the correct scopes
+- Look for detailed error information in the console output
+- Delete the token file (e.g., `token_your_email_at_gmail_com.pickle`) to force re-authentication
 
-2. **Permission Errors**:
-   - Make sure you've granted all required permissions during the OAuth flow
-   - Check if the output directory is writable
+## Limitations
 
-3. **Rate Limit Errors**:
-   - The script automatically handles rate limits with retries
-   - If persistent, try reducing the `BATCH_SIZE` in the code
+- Video files might be downloaded in a reduced quality format due to Google Photos API limitations
+- Some shared albums might not be accessible depending on permissions
+- The script honors Google's API quota limits, which may affect download speed
 
-4. **Download Errors**:
-   - Check your internet connection
-   - Verify you have enough disk space
-   - The script will automatically retry failed downloads
+## Security Note
 
-## Notes
-
-- The first run will open your browser for authentication
-- Subsequent runs will use stored credentials unless they expire
-- Downloads are tracked and can be resumed if interrupted
-- Large albums are processed in batches with breaks between batches
-- The script creates a separate token file for each Google account
+The `credentials.json` file and generated token files contain sensitive information. Keep them secure and do not share them.
 
 ## Contributing
 
-Feel free to open issues or submit pull requests on the [GitHub repository](https://github.com/muniu/google-photos-downloader).
+Contributions are welcome! Feel free to submit issues or pull requests if you have suggestions for improvements.
 
 ## License
 
-This project is open source and available under the MIT License.
+[MIT License](LICENSE)

@@ -267,6 +267,55 @@ class GooglePhotosDownloader:
         except Exception as e:
             self.logger.error(f"An unexpected error occurred: {str(e)}")
             raise
+            
+    def download_all_albums(self, output_base_dir):
+        """Download all available albums"""
+        if not self.service:
+            raise ValueError("Service not initialized. Please authenticate first.")
+            
+        try:
+            # Get all albums
+            albums = self.get_albums()
+            
+            if not albums:
+                self.logger.warning("No albums found to download")
+                return
+                
+            print(f"\nPreparing to download {len(albums)} albums...")
+            
+            # Process each album
+            for i, album in enumerate(albums):
+                print(f"\n[{i+1}/{len(albums)}] Processing album: {album['title']}")
+                
+                # Create album-specific subfolder
+                album_dir = os.path.join(output_base_dir, self.sanitize_folder_name(album['title']))
+                
+                # Download the album
+                try:
+                    self.download_album(album['id'], album_dir)
+                    print(f"Completed album: {album['title']}")
+                except Exception as e:
+                    self.logger.error(f"Error downloading album '{album['title']}': {str(e)}")
+                    print(f"Failed to download album '{album['title']}'. Continuing with next album...")
+                
+                # Short pause between albums
+                if i < len(albums) - 1:
+                    print("Taking a short break before next album...")
+                    time.sleep(3)
+                    
+            print("\nAll albums download process completed!")
+            
+        except Exception as e:
+            self.logger.error(f"Error downloading all albums: {str(e)}")
+            raise
+
+    def sanitize_folder_name(self, folder_name):
+        """Remove invalid characters from folder name"""
+        # Replace characters that are not allowed in folder names
+        invalid_chars = ['<', '>', ':', '"', '/', '\\', '|', '?', '*']
+        for char in invalid_chars:
+            folder_name = folder_name.replace(char, '_')
+        return folder_name
 
 def main():
     downloader = GooglePhotosDownloader()
@@ -279,6 +328,9 @@ def main():
         
         # Authenticate
         downloader.authenticate()
+        
+        # Get output directory first
+        output_dir = input("Enter the output directory path (default: ./downloads): ") or "./downloads"
         
         # List albums
         print("\nFetching albums...")
@@ -296,23 +348,77 @@ def main():
         for i, album in enumerate(albums):
             print(f"{i+1}. {album['title']} (ID: {album['id']})")
             
-        # Get user input for album selection
+        # Ask whether to download all, specific albums, or a single album
         while True:
-            try:
-                album_index = int(input("\nEnter the number of the album you want to download: ")) - 1
-                if 0 <= album_index < len(albums):
-                    break
-                print(f"Please enter a number between 1 and {len(albums)}")
-            except ValueError:
-                print("Please enter a valid number")
+            download_option = input("\nEnter 'a' to download all albums, 'm' to download multiple albums, or 's' to select a single album: ").lower()
+            if download_option in ['a', 'm', 's']:
+                break
+            print("Please enter 'a', 'm', or 's'")
         
-        selected_album = albums[album_index]
-        
-        # Get output directory
-        output_dir = input("Enter the output directory path (default: ./downloads): ") or "./downloads"
-        
-        # Download the selected album
-        downloader.download_album(selected_album['id'], output_dir)
+        if download_option == 'a':
+            # Download all albums
+            print("\nDownloading all albums...")
+            downloader.download_all_albums(output_dir)
+        elif download_option == 'm':
+            # Download multiple selected albums
+            print("\nYou can enter multiple album numbers separated by commas (e.g., 1,3,5)")
+            
+            while True:
+                try:
+                    # Get comma-separated album numbers
+                    album_indices_input = input("Enter the numbers of the albums you want to download: ")
+                    album_indices = [int(idx.strip()) - 1 for idx in album_indices_input.split(',')]
+                    
+                    # Validate all indices are in range
+                    if all(0 <= idx < len(albums) for idx in album_indices):
+                        break
+                    invalid_indices = [idx + 1 for idx in album_indices if idx < 0 or idx >= len(albums)]
+                    print(f"Invalid album numbers: {', '.join(map(str, invalid_indices))}. Please enter numbers between 1 and {len(albums)}")
+                except ValueError:
+                    print("Please enter valid numbers separated by commas")
+            
+            # Download each selected album
+            print(f"\nPreparing to download {len(album_indices)} selected albums...")
+            
+            for i, album_idx in enumerate(album_indices):
+                selected_album = albums[album_idx]
+                print(f"\n[{i+1}/{len(album_indices)}] Processing album: {selected_album['title']}")
+                
+                # Create album-specific directory
+                album_output_dir = os.path.join(output_dir, downloader.sanitize_folder_name(selected_album['title']))
+                
+                # Download the selected album
+                try:
+                    downloader.download_album(selected_album['id'], album_output_dir)
+                    print(f"Completed album: {selected_album['title']}")
+                except Exception as e:
+                    downloader.logger.error(f"Error downloading album '{selected_album['title']}': {str(e)}")
+                    print(f"Failed to download album '{selected_album['title']}'. Continuing with next album...")
+                
+                # Short pause between albums
+                if i < len(album_indices) - 1:
+                    print("Taking a short break before next album...")
+                    time.sleep(3)
+                    
+            print("\nAll selected albums download process completed!")
+        else:
+            # Get user input for single album selection
+            while True:
+                try:
+                    album_index = int(input("\nEnter the number of the album you want to download: ")) - 1
+                    if 0 <= album_index < len(albums):
+                        break
+                    print(f"Please enter a number between 1 and {len(albums)}")
+                except ValueError:
+                    print("Please enter a valid number")
+            
+            selected_album = albums[album_index]
+            
+            # Create album-specific directory
+            album_output_dir = os.path.join(output_dir, downloader.sanitize_folder_name(selected_album['title']))
+            
+            # Download the selected album
+            downloader.download_album(selected_album['id'], album_output_dir)
         
     except KeyboardInterrupt:
         print("\nOperation cancelled by user")
